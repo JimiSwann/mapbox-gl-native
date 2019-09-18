@@ -13,6 +13,10 @@ Mapbox welcomes participation and contributions from everyone. Please read [CONT
 
 * Newly loaded labels appear faster on the screen. ([#15308](https://github.com/mapbox/mapbox-gl-native/pull/15308))
 
+### Other changes
+
+* Added `MGLNetworkConfiguration.stopsRequests` to stop `NSURLSessionConfiguration` from creating requests. ([#15650](https://github.com/mapbox/mapbox-gl-native/pull/15650))
+
 ## 5.4.0
 
 ### Styles and rendering
