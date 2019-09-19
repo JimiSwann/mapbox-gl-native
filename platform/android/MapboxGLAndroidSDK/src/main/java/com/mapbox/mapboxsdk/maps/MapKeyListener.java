@@ -34,11 +34,11 @@ final class MapKeyListener {
   }
 
   /**
-   * Called when the user presses a key, alse called for repeated keys held down.
+   * Called when the user presses a key, also called for repeated keys held down.
    *
    * @param keyCode the id of the pressed key
    * @param event   the related key event
-   * @return true if the wevent is handled
+   * @return true if the event is handled
    */
   boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
     // If the user has held the scroll key down for a while then accelerate
@@ -86,8 +86,27 @@ final class MapKeyListener {
         // Cancel any animation
         transform.cancelTransitions();
 
-        // Move up
-        transform.moveBy(0.0, scrollDist, 0 /*no animation*/);
+        // Check if the alt key is being held down
+        if (event.isAltPressed()) {
+          if (!uiSettings.isZoomGesturesEnabled()) {
+            return false;
+          }
+          // Pull the map camera out away from the map (i.e. decrease the map camera zoom level number)
+          // if the alt button is held down while the up arrow is pressed
+          zoomMapCameraOut();
+        }
+        // Check if the shift key is being held down
+        else if (event.isShiftPressed()) {
+          if (!uiSettings.isTiltGesturesEnabled()) {
+            return false;
+          }
+
+          // Increase map camera pitch value
+          transform.setTilt(transform.getTilt() + 1);
+        } else {
+          // Move map camera target up
+          transform.moveBy(0.0, scrollDist, 0 /*no animation*/);
+        }
         return true;
 
       case KeyEvent.KEYCODE_DPAD_DOWN:
@@ -98,8 +117,26 @@ final class MapKeyListener {
         // Cancel any animation
         transform.cancelTransitions();
 
-        // Move down
-        transform.moveBy(0.0, -scrollDist, 0 /*no animation*/);
+        // Check if the alt key is being held down
+        if (event.isAltPressed()) {
+          if (!uiSettings.isZoomGesturesEnabled()) {
+            return false;
+          }
+          // Zoom the map camera closer to the map (i.e. increase the map camera zoom level number)
+          // if the alt button is held down while the down arrow is pressed
+          zoomMapCameraIn();
+        }
+        // Check if the shift key is being held down
+        else if (event.isShiftPressed()) {
+          if (!uiSettings.isTiltGesturesEnabled()) {
+            return false;
+          }
+          // Decrease map camera pitch value
+          transform.setTilt(transform.getTilt() - 1);
+        } else {
+          // Move map target down
+          transform.moveBy(0.0, -scrollDist, 0 /*no animation*/);
+        }
         return true;
 
       default:
@@ -127,8 +164,7 @@ final class MapKeyListener {
         }
 
         // Zoom out
-        PointF focalPoint = new PointF(uiSettings.getWidth() / 2, uiSettings.getHeight() / 2);
-        mapGestureDetector.zoomOutAnimated(focalPoint, true);
+        zoomMapCameraOut();
         return true;
 
       default:
@@ -163,8 +199,7 @@ final class MapKeyListener {
         }
 
         // Zoom in
-        PointF focalPoint = new PointF(uiSettings.getWidth() / 2, uiSettings.getHeight() / 2);
-        mapGestureDetector.zoomInAnimated(focalPoint, true);
+        zoomMapCameraIn();
         return true;
     }
 
@@ -191,7 +226,7 @@ final class MapKeyListener {
         transform.cancelTransitions();
 
         // Scroll the map
-        transform.moveBy(-10.0 * event.getX(), -10.0 * event.getY(), 0 /*no animation*/);
+        zoomMapCameraIn();
         return true;
 
       // Trackball was pushed in so start tracking and tell system we are
@@ -218,8 +253,7 @@ final class MapKeyListener {
         // Only handle if we have not already long pressed
         if (currentTrackballLongPressTimeOut != null) {
           // Zoom in
-          PointF focalPoint = new PointF(uiSettings.getWidth() / 2, uiSettings.getHeight() / 2);
-          mapGestureDetector.zoomInAnimated(focalPoint, true);
+          zoomMapCameraIn();
         }
         return true;
 
@@ -260,12 +294,27 @@ final class MapKeyListener {
       // Check if the trackball is still pressed
       if (!cancelled) {
         // Zoom out
-        PointF pointF = new PointF(uiSettings.getWidth() / 2, uiSettings.getHeight() / 2);
-        mapGestureDetector.zoomOutAnimated(pointF, true);
+        zoomMapCameraOut();
 
         // Ensure the up action is not run
         currentTrackballLongPressTimeOut = null;
       }
     }
+  }
+
+  /**
+   * Moves the map camera towards from the map plane.
+   */
+  private void zoomMapCameraIn() {
+    PointF focalPoint = new PointF(uiSettings.getWidth() / 2, uiSettings.getHeight() / 2);
+    mapGestureDetector.zoomInAnimated(focalPoint, true);
+  }
+
+  /**
+   * Moves the map camera away from the map plane
+   */
+  private void zoomMapCameraOut() {
+    PointF focalPoint = new PointF(uiSettings.getWidth() / 2, uiSettings.getHeight() / 2);
+    mapGestureDetector.zoomOutAnimated(focalPoint, true);
   }
 }
