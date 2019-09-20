@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
@@ -20,6 +21,7 @@ import android.view.ViewConfiguration;
  */
 final class MapKeyListener {
 
+  private final String TAG = "MapKeyListener";
   private final Transform transform;
   private final UiSettings uiSettings;
   private final MapGestureDetector mapGestureDetector;
@@ -43,7 +45,9 @@ final class MapKeyListener {
   boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
     // If the user has held the scroll key down for a while then accelerate
     // the scroll speed
-    double scrollDist = event.getRepeatCount() >= 5 ? 50.0 : 10.0;
+    double scrollDist = event.getRepeatCount() >= 5 ? 90.0 : 50.0;
+    double pitchDist = event.getRepeatCount() >= 5 ? 30.0 : 1.0;
+    double rotateDist = event.getRepeatCount() >= 5 ? 30.0 : 1.0;
 
     // Check which key was pressed via hardware/real key code
     switch (keyCode) {
@@ -62,8 +66,33 @@ final class MapKeyListener {
         // Cancel any animation
         transform.cancelTransitions();
 
-        // Move left
-        transform.moveBy(scrollDist, 0.0, 0 /*no animation*/);
+        // Check if the shift key is being held down
+        if (event.isShiftPressed()) {
+          if (!uiSettings.isRotateGesturesEnabled()) {
+            return false;
+          }
+
+          Log.d(TAG, "onKeyDown: transform.getBearing() = " + transform.getBearing());
+          Log.d(TAG, "onKeyDown: transform.getBearing() - rotateDist = " + (transform.getBearing() - rotateDist));
+          Log.d(TAG, "onKeyDown: transform.getBearing() + rotateDist = " + (transform.getBearing() + rotateDist));
+
+          if (transform.getBearing() < 360) {
+            Log.d(TAG, "onKeyDown: transform.getBearing() < 360");
+            Log.d(TAG, "onKeyDown: transform.getBearing() = " + transform.getBearing());
+            Log.d(TAG, "onKeyDown: transform.getRawBearing() = " + transform.getRawBearing());
+            transform.setBearing(transform.getBearing() - rotateDist);
+          } else {
+            Log.d(TAG, "onKeyDown: transform.getBearing() > 360");
+            transform.setBearing(transform.getBearing() - rotateDist);
+          }
+
+          Log.d(TAG, "onKeyDown: transform.getBearing() now = " + transform.getBearing());
+
+        } else {
+
+          // Move map camera left
+          transform.moveBy(scrollDist, 0.0, 0 /*no animation*/);
+        }
         return true;
 
       case KeyEvent.KEYCODE_DPAD_RIGHT:
@@ -74,7 +103,7 @@ final class MapKeyListener {
         // Cancel any animation
         transform.cancelTransitions();
 
-        // Move right
+        // Move map camera right
         transform.moveBy(-scrollDist, 0.0, 0 /*no animation*/);
         return true;
 
@@ -102,7 +131,7 @@ final class MapKeyListener {
           }
 
           // Increase map camera pitch value
-          transform.setTilt(transform.getTilt() + 1);
+          transform.setTilt(transform.getTilt() + pitchDist);
         } else {
           // Move map camera target up
           transform.moveBy(0.0, scrollDist, 0 /*no animation*/);
@@ -132,7 +161,7 @@ final class MapKeyListener {
             return false;
           }
           // Decrease map camera pitch value
-          transform.setTilt(transform.getTilt() - 1);
+          transform.setTilt(transform.getTilt() - pitchDist);
         } else {
           // Move map target down
           transform.moveBy(0.0, -scrollDist, 0 /*no animation*/);
