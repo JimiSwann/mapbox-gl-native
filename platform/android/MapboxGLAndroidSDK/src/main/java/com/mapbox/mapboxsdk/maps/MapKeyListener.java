@@ -25,6 +25,7 @@ final class MapKeyListener {
   private final Transform transform;
   private final UiSettings uiSettings;
   private final MapGestureDetector mapGestureDetector;
+  private int bearingIndex = 1;
 
   @Nullable
   private TrackballLongPressTimeOut currentTrackballLongPressTimeOut;
@@ -44,7 +45,7 @@ final class MapKeyListener {
    */
   boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
     // If the user has held the scroll key down for a while then accelerate
-    // the scroll speed
+    // the map camera movement speeds
     double scrollDist = event.getRepeatCount() >= 5 ? 90.0 : 50.0;
     double pitchDist = event.getRepeatCount() >= 5 ? 30.0 : 1.0;
     double rotateDist = event.getRepeatCount() >= 5 ? 30.0 : 1.0;
@@ -71,25 +72,10 @@ final class MapKeyListener {
           if (!uiSettings.isRotateGesturesEnabled()) {
             return false;
           }
-
-          Log.d(TAG, "onKeyDown: transform.getBearing() = " + transform.getBearing());
-          Log.d(TAG, "onKeyDown: transform.getBearing() - rotateDist = " + (transform.getBearing() - rotateDist));
-          Log.d(TAG, "onKeyDown: transform.getBearing() + rotateDist = " + (transform.getBearing() + rotateDist));
-
-          if (transform.getBearing() < 360) {
-            Log.d(TAG, "onKeyDown: transform.getBearing() < 360");
-            Log.d(TAG, "onKeyDown: transform.getBearing() = " + transform.getBearing());
-            Log.d(TAG, "onKeyDown: transform.getRawBearing() = " + transform.getRawBearing());
-            transform.setBearing(transform.getBearing() - rotateDist);
-          } else {
-            Log.d(TAG, "onKeyDown: transform.getBearing() > 360");
-            transform.setBearing(transform.getBearing() - rotateDist);
-          }
-
-          Log.d(TAG, "onKeyDown: transform.getBearing() now = " + transform.getBearing());
-
+          transform.setBearing(bearingIndex * rotateDist);
+          Log.d(TAG, "transform.getBearing() = " + transform.getBearing());
+          bearingIndex++;
         } else {
-
           // Move map camera left
           transform.moveBy(scrollDist, 0.0, 0 /*no animation*/);
         }
@@ -103,8 +89,18 @@ final class MapKeyListener {
         // Cancel any animation
         transform.cancelTransitions();
 
-        // Move map camera right
-        transform.moveBy(-scrollDist, 0.0, 0 /*no animation*/);
+        // Check if the shift key is being held down
+        if (event.isShiftPressed()) {
+          if (!uiSettings.isRotateGesturesEnabled()) {
+            return false;
+          }
+          transform.setBearing(180 - (bearingIndex * rotateDist));
+          Log.d(TAG, "transform.getBearing() = " + transform.getBearing());
+          bearingIndex++;
+        } else {
+          // Move map camera right
+          transform.moveBy(-scrollDist, 0.0, 0 /*no animation*/);
+        }
         return true;
 
       case KeyEvent.KEYCODE_DPAD_UP:
@@ -120,16 +116,15 @@ final class MapKeyListener {
           if (!uiSettings.isZoomGesturesEnabled()) {
             return false;
           }
+
           // Pull the map camera out away from the map (i.e. decrease the map camera zoom level number)
           // if the alt button is held down while the up arrow is pressed
           zoomMapCameraOut();
-        }
-        // Check if the shift key is being held down
-        else if (event.isShiftPressed()) {
+
+        } else if (event.isShiftPressed()) {
           if (!uiSettings.isTiltGesturesEnabled()) {
             return false;
           }
-
           // Increase map camera pitch value
           transform.setTilt(transform.getTilt() + pitchDist);
         } else {
@@ -154,12 +149,12 @@ final class MapKeyListener {
           // Zoom the map camera closer to the map (i.e. increase the map camera zoom level number)
           // if the alt button is held down while the down arrow is pressed
           zoomMapCameraIn();
-        }
-        // Check if the shift key is being held down
-        else if (event.isShiftPressed()) {
+
+        } else if (event.isShiftPressed()) {
           if (!uiSettings.isTiltGesturesEnabled()) {
             return false;
           }
+
           // Decrease map camera pitch value
           transform.setTilt(transform.getTilt() - pitchDist);
         } else {
