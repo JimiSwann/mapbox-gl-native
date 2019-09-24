@@ -689,6 +689,18 @@ commands:
             scripts/notify-slack.sh
           fi
 
+  notify-slack-master-failure:
+    steps:
+    - run:
+        name: Send a Slack notification on a master branch failure
+        when: on_fail
+        command: |
+          if [[ $CIRCLE_BRANCH == master ]]; then
+            export SLACK_MESSAGE="<$CIRCLE_BUILD_URL|Master branch build of \`$CIRCLE_JOB\` failed>."
+            export SLACK_COLOR="danger"
+            scripts/notify-slack.sh
+          fi
+
   #
   # Add this step to all regular jobs to enable skipping of certain non-code-related changes.
   #
@@ -858,6 +870,7 @@ jobs:
       BUILDTYPE: Debug
       IS_LOCAL_DEVELOPMENT: false
       MBGL_ANDROID_STL: << parameters.stl >>
+      SLACK_CHANNEL: C21AYEN5N
     steps:
       - install-dependencies: { gradle: true }
       - check-if-this-job-can-be-skipped
@@ -923,6 +936,7 @@ jobs:
           path: platform/android/MapboxGLAndroidSDKTestApp/lint-baseline.xml
       - store_artifacts:
           path: platform/android/MapboxGLAndroidSDK/build/intermediates/cmake/debug/obj
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   android-release:
@@ -935,6 +949,7 @@ jobs:
       JOBS: 8
       BUILDTYPE: Release
       IS_LOCAL_DEVELOPMENT: false
+      SLACK_CHANNEL: C21AYEN5N
     steps:
       - install-dependencies: { gradle: true }
       - check-if-this-job-can-be-skipped
@@ -1024,6 +1039,7 @@ jobs:
       - run:
           name: Record size
           command: platform/android/scripts/metrics.sh
+      - notify-slack-master-failure
 # ------------------------------------------------------------------------------
   android-debug-arm-v7-buck:
     docker:
@@ -1034,6 +1050,7 @@ jobs:
       JOBS: 2
       BUILDTYPE: Debug
       ANDROID_NDK: /android/sdk/ndk-bundle
+      SLACK_CHANNEL: C21AYEN5N
     steps:
       - checkout
       - npm-install
@@ -1049,6 +1066,7 @@ jobs:
           command: |
             cd misc/buck
             buck build mapbox-gl-native:android-core
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   node-clang39-release:
@@ -1061,12 +1079,14 @@ jobs:
       JOBS: 4
       BUILDTYPE: RelWithDebInfo
       WITH_EGL: 1
+      SLACK_CHANNEL: C9C7RJKJA
     steps:
       - install-dependencies
       - build-node
       - save-dependencies
       - run-node-linux-tests
       - publish-node-package
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   node-gcc8-debug:
@@ -1079,12 +1099,14 @@ jobs:
       JOBS: 4
       BUILDTYPE: Debug
       WITH_EGL: 1
+      SLACK_CHANNEL: C9C7RJKJA
     steps:
       - install-dependencies
       - check-if-this-job-can-be-skipped
       - build-node
       - save-dependencies
       - publish-node-package
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   node-macos-release:
@@ -1094,6 +1116,7 @@ jobs:
       BUILDTYPE: RelWithDebInfo
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
+      SLACK_CHANNEL: C9C7RJKJA
     steps:
       - install-macos-dependencies
       - install-node-macos-dependencies
@@ -1105,6 +1128,7 @@ jobs:
       - publish-node-package
       - collect-xcode-build-logs
       - upload-xcode-build-logs
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   linux-clang-38-libcxx-debug:
@@ -1117,11 +1141,13 @@ jobs:
       JOBS: 4
       BUILDTYPE: Debug
       WITH_EGL: 1
+      SLACK_CHANNEL: CFN66JMMK
     steps:
       - install-dependencies
       - check-if-this-job-can-be-skipped
       - build-linux
       - save-dependencies
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   linux-clang-7-sanitize-address-undefined:
@@ -1139,6 +1165,7 @@ jobs:
       LDFLAGS: -fsanitize=address -fsanitize=undefined
       ASAN_OPTIONS: detect_leaks=0:color=always:print_summary=1
       UBSAN_OPTIONS: print_stacktrace=1:color=always:print_summary=1
+      SLACK_CHANNEL: CFN66JMMK
     steps:
       - install-dependencies
       - check-if-this-job-can-be-skipped
@@ -1146,6 +1173,7 @@ jobs:
       - build-test
       - save-dependencies
       - run-unit-tests-sanitized
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   linux-clang-7-sanitize-thread:
@@ -1162,6 +1190,7 @@ jobs:
       CXXFLAGS: -fsanitize=thread
       LDFLAGS: -fsanitize=thread
       TSAN_OPTIONS: color=always:print_summary=1
+      SLACK_CHANNEL: CFN66JMMK
     steps:
       - install-dependencies
       - check-if-this-job-can-be-skipped
@@ -1169,6 +1198,7 @@ jobs:
       - build-test
       - save-dependencies
       - run-unit-tests-sanitized
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   linux-gcc5-debug-coverage:
@@ -1182,6 +1212,7 @@ jobs:
       BUILDTYPE: Debug
       WITH_EGL: 1
       WITH_COVERAGE: 1
+      SLACK_CHANNEL: CFN66JMMK
     steps:
       - install-dependencies
       - check-if-this-job-can-be-skipped
@@ -1200,6 +1231,7 @@ jobs:
             if [[ $CIRCLE_BRANCH == master ]]; then
                 scripts/publish_core_codecoverage.js -p Linux -s Core
             fi
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   linux-doxygen:
@@ -1238,6 +1270,7 @@ jobs:
       JOBS: 4
       BUILDTYPE: RelWithDebInfo
       WITH_EGL: 1
+      SLACK_CHANNEL: CFN66JMMK
     steps:
       - install-dependencies
       - check-if-this-job-can-be-skipped
@@ -1249,6 +1282,7 @@ jobs:
       - save-dependencies
       - upload-expression-tests
       - upload-render-tests
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   ios-debug:
@@ -1258,6 +1292,7 @@ jobs:
       BUILDTYPE: Debug
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
+      SLACK_CHANNEL: C0ACM9Q2C
     steps:
       - install-macos-dependencies
       - install-dependencies
@@ -1276,6 +1311,7 @@ jobs:
       - save-dependencies
       - collect-xcode-build-logs
       - upload-xcode-build-logs
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   ios-debug-xcode10:
@@ -1285,6 +1321,7 @@ jobs:
       BUILDTYPE: Debug
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
+      SLACK_CHANNEL: C0ACM9Q2C
     steps:
       - install-macos-dependencies
       - install-dependencies
@@ -1303,6 +1340,7 @@ jobs:
       - save-dependencies
       - collect-xcode-build-logs
       - upload-xcode-build-logs
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   ios-sanitize-nightly:
@@ -1499,6 +1537,7 @@ jobs:
       BUILDTYPE: Debug
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
+      SLACK_CHANNEL: C0ACM9Q2C
     steps:
       - install-macos-dependencies
       - install-dependencies
@@ -1517,6 +1556,7 @@ jobs:
           destination: test/fixtures
       - collect-xcode-build-logs
       - upload-xcode-build-logs
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   macos-render-tests:
@@ -1527,6 +1567,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
       JOBS: 2
+      SLACK_CHANNEL: CFN66JMMK
     steps:
       - install-macos-dependencies
       - install-dependencies
@@ -1539,6 +1580,7 @@ jobs:
       - run-macos-render-tests
       - upload-expression-tests
       - upload-render-tests
+      - notify-slack-master-failure
 
 # ------------------------------------------------------------------------------
   metrics-nightly:
