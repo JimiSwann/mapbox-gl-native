@@ -20,13 +20,16 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import com.mapbox.android.gestures.AndroidGesturesManager;
+import com.mapbox.mapboxsdk.BuildConfig;
 import com.mapbox.mapboxsdk.MapStrictMode;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.R;
 import com.mapbox.mapboxsdk.annotations.Annotation;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.constants.MapboxConstants;
 import com.mapbox.mapboxsdk.exceptions.MapboxConfigurationException;
 import com.mapbox.mapboxsdk.location.LocationComponent;
+import com.mapbox.mapboxsdk.log.Logger;
 import com.mapbox.mapboxsdk.maps.renderer.MapRenderer;
 import com.mapbox.mapboxsdk.maps.renderer.glsurfaceview.GLSurfaceViewMapRenderer;
 import com.mapbox.mapboxsdk.maps.renderer.glsurfaceview.MapboxGLSurfaceView;
@@ -65,6 +68,7 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
   private final MapChangeReceiver mapChangeReceiver = new MapChangeReceiver();
   private final MapCallback mapCallback = new MapCallback();
   private final InitialRenderCallback initialRenderCallback = new InitialRenderCallback();
+  private static final String TAG = "Mbgl-MapView";
 
   @Nullable
   private NativeMap nativeMapView;
@@ -190,8 +194,7 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
     // user input
     mapGestureDetector = new MapGestureDetector(context, transform, proj, uiSettings,
       annotationManager, cameraDispatcher);
-    mapKeyListener = new MapKeyListener(transform, uiSettings, mapGestureDetector);
-
+    mapKeyListener = new MapKeyListener(transform, uiSettings, mapGestureDetector, createDebugActionsKeyListener());
     // compass
     compassView.injectCompassAnimationListener(createCompassAnimationListener(cameraDispatcher));
     compassView.setOnClickListener(createCompassClickListener(cameraDispatcher));
@@ -220,6 +223,42 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
     }
 
     mapCallback.initialised();
+  }
+
+  private MapKeyListener.DebugActionsKeyListener createDebugActionsKeyListener() {
+    return new MapKeyListener.DebugActionsKeyListener() {
+      @Override
+      public void printCameraPositionToLog(boolean printLog){
+        if (mapboxMap != null && BuildConfig.DEBUG) {
+          final CameraPosition mapCameraPosition = mapboxMap.getCameraPosition();
+          mapboxMap.addOnCameraMoveListener(new MapboxMap.OnCameraMoveListener() {
+            @Override
+            public void onCameraMove() {
+              Logger.d(TAG, String.format("map camera position: zoom %s, latitude %s, longitude %s, tilt %s, bearing %s",
+                mapCameraPosition.zoom,
+                mapCameraPosition.target.getLatitude(),
+                mapCameraPosition.target.getLongitude(),
+                mapCameraPosition.tilt,
+                mapCameraPosition.bearing));
+            }
+          });
+        }
+      }
+
+      @Override
+      public void enableDebugMode(boolean enabled) {
+        if (mapboxMap != null && BuildConfig.DEBUG) {
+          mapboxMap.setDebugActive(enabled);
+        }
+      }
+
+      @Override
+      public void loadStyle() {
+        if (mapboxMap != null && BuildConfig.DEBUG) {
+          mapboxMap.setStyle(Style.MAPBOX_STREETS);
+        }
+      }
+    };
   }
 
   private FocalPointChangeListener createFocalPointChangeListener() {

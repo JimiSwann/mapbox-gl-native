@@ -25,15 +25,21 @@ final class MapKeyListener {
   private final Transform transform;
   private final UiSettings uiSettings;
   private final MapGestureDetector mapGestureDetector;
+  private DebugActionsKeyListener debugActionsKeyListener;
   private int bearingIndex = 1;
+  private boolean printCameraPositionToLog = false;
+  private boolean enableDebugMode = false;
+  private boolean loadStyle = false;
 
   @Nullable
   private TrackballLongPressTimeOut currentTrackballLongPressTimeOut;
 
-  MapKeyListener(Transform transform, UiSettings uiSettings, MapGestureDetector mapGestureDetector) {
+  MapKeyListener(Transform transform, UiSettings uiSettings, MapGestureDetector mapGestureDetector,
+                 DebugActionsKeyListener debugActionsKeyListener) {
     this.transform = transform;
     this.uiSettings = uiSettings;
     this.mapGestureDetector = mapGestureDetector;
+    this.debugActionsKeyListener = debugActionsKeyListener;
   }
 
   /**
@@ -162,7 +168,34 @@ final class MapKeyListener {
           transform.moveBy(0.0, -scrollDist, 0 /*no animation*/);
         }
         return true;
-
+      case KeyEvent.KEYCODE_P:
+        if (event.isShiftPressed()) {
+          if (!printCameraPositionToLog) {
+            if (debugActionsKeyListener!=null) {
+              debugActionsKeyListener.printCameraPositionToLog();
+            }
+          }
+          printCameraPositionToLog = !printCameraPositionToLog;
+        }
+        return true;
+      case KeyEvent.KEYCODE_D:
+        if (event.isShiftPressed()) {
+          if (debugActionsKeyListener!=null) {
+            debugActionsKeyListener.enableDebugMode(!enableDebugMode);
+          }
+        }
+        enableDebugMode = !enableDebugMode;
+        return true;
+      case KeyEvent.KEYCODE_L:
+        if (event.isShiftPressed()) {
+          if (!loadStyle) {
+            if (debugActionsKeyListener!=null) {
+              debugActionsKeyListener.loadStyle();
+            }
+          }
+        }
+        loadStyle = !loadStyle;
+        return true;
       default:
         // We are not interested in this key
         return false;
@@ -340,5 +373,15 @@ final class MapKeyListener {
   private void zoomMapCameraOut() {
     PointF focalPoint = new PointF(uiSettings.getWidth() / 2, uiSettings.getHeight() / 2);
     mapGestureDetector.zoomOutAnimated(focalPoint, true);
+  }
+
+  public interface DebugActionsKeyListener {
+
+    void printCameraPositionToLog(boolean printLog);
+
+    void enableDebugMode(boolean enabled);
+
+    void loadStyle();
+
   }
 }
