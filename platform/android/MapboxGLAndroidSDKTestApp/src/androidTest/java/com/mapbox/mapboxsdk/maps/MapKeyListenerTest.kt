@@ -6,10 +6,6 @@ import android.support.test.espresso.matcher.ViewMatchers.withId
 import android.view.KeyEvent
 import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
-import com.mapbox.mapboxsdk.constants.MapboxConstants
-import com.mapbox.mapboxsdk.geometry.LatLng
-import com.mapbox.mapboxsdk.maps.GesturesUiTestUtils.move
-import com.mapbox.mapboxsdk.maps.GesturesUiTestUtils.quickScale
 import com.mapbox.mapboxsdk.testapp.R
 import com.mapbox.mapboxsdk.testapp.activity.BaseTest
 import com.mapbox.mapboxsdk.testapp.activity.maplayout.SimpleMapActivity
