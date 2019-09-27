@@ -1756,7 +1756,10 @@ public:
 
         if ([self _shouldChangeFromCamera:oldCamera toCamera:toCamera])
         {
-            self.mbglMap.jumpTo(mbgl::CameraOptions().withZoom(newZoom).withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y }));
+            self.mbglMap.jumpTo(mbgl::CameraOptions()
+                                .withZoom(newZoom)
+                                .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y })
+                                .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)));
 
             // The gesture recognizer only reports the gesture’s current center
             // point, so use the previous center point to anchor the transition.
@@ -1814,7 +1817,10 @@ public:
         {
             if (drift)
             {
-                self.mbglMap.easeTo(mbgl::CameraOptions().withZoom(zoom).withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y }), MGLDurationFromTimeInterval(duration));
+                self.mbglMap.easeTo(mbgl::CameraOptions()
+                                    .withZoom(zoom)
+                                    .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y })
+                                    .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)), MGLDurationFromTimeInterval(duration));
             }
         }
 
@@ -1879,7 +1885,8 @@ public:
         {
             self.mbglMap.jumpTo(mbgl::CameraOptions()
                                     .withBearing(newDegrees)
-                                    .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y}));
+                                    .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y})
+                                    .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)));
         }
 
         [self cameraIsChanging];
@@ -1920,7 +1927,8 @@ public:
             {
                 self.mbglMap.easeTo(mbgl::CameraOptions()
                                     .withBearing(newDegrees)
-                                    .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y }),
+                                    .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y })
+                                    .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)),
                                     MGLDurationFromTimeInterval(decelerationRate));
 
                 [self notifyGestureDidEndWithDrift:YES];
@@ -2048,7 +2056,10 @@ public:
     if ([self _shouldChangeFromCamera:oldCamera toCamera:toCamera])
     {
         mbgl::ScreenCoordinate center(gesturePoint.x, gesturePoint.y);
-        self.mbglMap.easeTo(mbgl::CameraOptions().withZoom(newZoom).withAnchor(center), MGLDurationFromTimeInterval(MGLAnimationDuration));
+        self.mbglMap.easeTo(mbgl::CameraOptions()
+                            .withZoom(newZoom)
+                            .withAnchor(center)
+                            .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)), MGLDurationFromTimeInterval(MGLAnimationDuration));
 
         __weak MGLMapView *weakSelf = self;
 
@@ -2086,7 +2097,10 @@ public:
     if ([self _shouldChangeFromCamera:oldCamera toCamera:toCamera])
     {
         mbgl::ScreenCoordinate center(gesturePoint.x, gesturePoint.y);
-        self.mbglMap.easeTo(mbgl::CameraOptions().withZoom(newZoom).withAnchor(center), MGLDurationFromTimeInterval(MGLAnimationDuration));
+        self.mbglMap.easeTo(mbgl::CameraOptions()
+                            .withZoom(newZoom)
+                            .withAnchor(center)
+                            .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)), MGLDurationFromTimeInterval(MGLAnimationDuration));
 
         __weak MGLMapView *weakSelf = self;
 
@@ -2128,7 +2142,10 @@ public:
 
         if ([self _shouldChangeFromCamera:oldCamera toCamera:toCamera])
         {
-            self.mbglMap.jumpTo(mbgl::CameraOptions().withZoom(newZoom).withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y }));
+            self.mbglMap.jumpTo(mbgl::CameraOptions()
+                                .withZoom(newZoom)
+                                .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y })
+                                .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)));
         }
 
         [self cameraIsChanging];
@@ -2195,7 +2212,8 @@ public:
             {
                 self.mbglMap.jumpTo(mbgl::CameraOptions()
                                     .withPitch(pitchNew)
-                                    .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y }));
+                                    .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y })
+                                    .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)));
             }
             
             [self cameraIsChanging];
@@ -3255,7 +3273,10 @@ public:
         centerPoint = self.userLocationAnnotationViewCenter;
     }
     double newZoom = round(self.zoomLevel) + log2(scaleFactor);
-    self.mbglMap.jumpTo(mbgl::CameraOptions().withZoom(newZoom).withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y }));
+    self.mbglMap.jumpTo(mbgl::CameraOptions()
+                        .withZoom(newZoom)
+                        .withAnchor(mbgl::ScreenCoordinate { centerPoint.x, centerPoint.y })
+                        .withPadding(MGLEdgeInsetsFromNSEdgeInsets(self.contentInset)));
     [self unrotateIfNeededForGesture];
 
     _accessibilityValueAnnouncementIsPending = YES;
@@ -3851,6 +3872,27 @@ public:
     mbgl::EdgeInsets padding = MGLEdgeInsetsFromNSEdgeInsets(insets);
     padding += MGLEdgeInsetsFromNSEdgeInsets(self.contentInset);
     mbgl::CameraOptions cameraOptions = self.mbglMap.cameraForLatLngBounds(MGLLatLngBoundsFromCoordinateBounds(bounds), padding);
+    return [self cameraForCameraOptions:cameraOptions];
+}
+
+- (MGLMapCamera *)camera:(MGLMapCamera *)camera fittingCoordinate:(CLLocationCoordinate2D)coordinate edgePadding:(UIEdgeInsets)insets {
+    if (!_mbglMap)
+    {
+        return self.residualCamera;
+    }
+    
+    mbgl::EdgeInsets padding = MGLEdgeInsetsFromNSEdgeInsets(insets);
+    padding += MGLEdgeInsetsFromNSEdgeInsets(self.contentInset);
+    
+    MGLMapCamera *currentCamera = self.camera;
+    CGFloat pitch = camera.pitch < 0 ? currentCamera.pitch : camera.pitch;
+    CLLocationDirection direction = camera.heading < 0 ? currentCamera.heading : camera.heading;
+    
+    std::vector<mbgl::LatLng> latLngs;
+    latLngs.reserve(1);
+    latLngs.push_back({coordinate.latitude, coordinate.longitude});
+    
+    mbgl::CameraOptions cameraOptions = self.mbglMap.cameraForLatLngs(latLngs, padding, direction, pitch);
     return [self cameraForCameraOptions:cameraOptions];
 }
 
